@@ -32,6 +32,17 @@ internal static class StartupHelperExtensions
         {
             app.UseDeveloperExceptionPage();
         }
+        else
+        {
+            app.UseExceptionHandler(builder =>
+            {
+                builder.Run(async context =>
+                {
+                    context.Response.StatusCode = 500;
+                    await context.Response.WriteAsync("An unexpected fault happened. Try again later.");
+                });
+            });
+        }
  
         app.UseAuthorization();
 
