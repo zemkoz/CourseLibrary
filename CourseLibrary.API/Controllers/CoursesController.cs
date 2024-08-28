@@ -66,9 +66,12 @@ public class CoursesController : ControllerBase
         await _courseLibraryRepository.SaveAsync();
 
         var courseToReturn = _mapper.Map<CourseDto>(courseEntity);
-        return Ok(courseToReturn);
+        return CreatedAtAction(
+            "GetCourseForAuthor",
+            new { authorId, courseId = courseToReturn.Id },
+            courseToReturn
+            );
     }
-
 
     [HttpPut("{courseId}")]
     public async Task<IActionResult> UpdateCourseForAuthor(Guid authorId,
