@@ -31,7 +31,7 @@ public class AuthorsController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
     }
 
-    [HttpGet("{authorId}")]
+    [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
     {
         var authorFromRepo = await _courseLibraryRepository.GetAuthorAsync(authorId);
@@ -43,7 +43,7 @@ public class AuthorsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorDto author)
+    public async Task<ActionResult<AuthorDto>> CreateAuthor(AuthorForCreationDto author)
     {
         var authorEntity = _mapper.Map<Entities.Author>(author);
 
