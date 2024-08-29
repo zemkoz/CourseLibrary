@@ -2,6 +2,7 @@
 using AutoMapper;
 using CourseLibrary.API.Models;
 using CourseLibrary.API.Services;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CourseLibrary.API.Controllers;
@@ -98,6 +99,40 @@ public class CoursesController : ControllerBase
         return NoContent();
     }
 
+    [HttpPatch("{courseId}")]
+    public async Task<ActionResult> UpdatePartiallyCourseForAuthor(
+        Guid authorId, 
+        Guid courseId,
+        JsonPatchDocument<CourseForUpdateDto> patchDocument)
+    {
+        if (!await _courseLibraryRepository.AuthorExistsAsync(authorId))
+        {
+            return NotFound();
+        }
+
+        var courseForAuthorFromRepo = await _courseLibraryRepository.GetCourseAsync(authorId, courseId);
+
+        if (courseForAuthorFromRepo == null)
+        {
+            return NotFound();
+        }
+
+        var courseToPatch = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
+        patchDocument.ApplyTo(courseToPatch, ModelState);
+
+        if (!TryValidateModel(courseToPatch))
+        {
+            return ValidationProblem(ModelState);
+        }
+
+        _mapper.Map(courseToPatch, courseForAuthorFromRepo);
+
+        _courseLibraryRepository.UpdateCourse(courseForAuthorFromRepo);
+
+        await _courseLibraryRepository.SaveAsync();
+        return NoContent();
+    }
+    
     [HttpDelete("{courseId}")]
     public async Task<ActionResult> DeleteCourseForAuthor(Guid authorId, Guid courseId)
     {
