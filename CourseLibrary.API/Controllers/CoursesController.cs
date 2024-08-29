@@ -124,7 +124,20 @@ public class CoursesController : ControllerBase
 
         if (courseForAuthorFromRepo == null)
         {
-            return NotFound();
+            var courseDto = new CourseForUpdateDto();
+            patchDocument.ApplyTo(courseDto, ModelState);
+            var courseToAdd = _mapper.Map<Entities.Course>(courseDto);
+            courseToAdd.Id = courseId;
+            
+            _courseLibraryRepository.AddCourse(authorId, courseToAdd);
+            await _courseLibraryRepository.SaveAsync();
+            
+            var courseToReturn = _mapper.Map<CourseDto>(courseToAdd);
+            return CreatedAtAction(
+                "GetCourseForAuthor",
+                new { authorId, courseId = courseToReturn.Id },
+                courseToReturn
+            );
         }
 
         var courseToPatch = _mapper.Map<CourseForUpdateDto>(courseForAuthorFromRepo);
