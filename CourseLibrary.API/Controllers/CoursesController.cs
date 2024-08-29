@@ -88,7 +88,17 @@ public class CoursesController : ControllerBase
 
         if (courseForAuthorFromRepo == null)
         {
-            return NotFound();
+            var courseEntity = _mapper.Map<Entities.Course>(course);
+            courseEntity.Id = courseId;
+            _courseLibraryRepository.AddCourse(authorId, courseEntity);
+            await _courseLibraryRepository.SaveAsync();
+            
+            var courseToReturn = _mapper.Map<CourseDto>(courseEntity);
+            return CreatedAtAction(
+                "GetCourseForAuthor",
+                new { authorId, courseId = courseToReturn.Id },
+                courseToReturn
+                );
         }
 
         _mapper.Map(course, courseForAuthorFromRepo);
