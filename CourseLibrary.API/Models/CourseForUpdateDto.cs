@@ -2,13 +2,12 @@
 
 namespace CourseLibrary.API.Models;
 
-public class CourseForUpdateDto
+public class CourseForUpdateDto : AbstractCourseForManipulationDto
 {
-    [Required]
-    [MaxLength(100)]
-    public string Title { get; set; } = string.Empty;
-    
-    [MaxLength(1500)]
-    public string Description { get; set; } = string.Empty;
+    [Required(ErrorMessage = "You should fill out a description.")]
+    public override string Description
+    {
+        get => base.Description;
+        set => base.Description = value;
+    }
 }
-
