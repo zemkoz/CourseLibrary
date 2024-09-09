@@ -1,5 +1,6 @@
-﻿
+﻿using System.Text.Json;
 using AutoMapper;
+using CourseLibrary.API.Helpers;
 using CourseLibrary.API.Models;
 using CourseLibrary.API.RespourceParameters;
 using CourseLibrary.API.Services;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CourseLibrary.API.Controllers;
 
-[ApiController] 
+[ApiController]
 [Route("api/authors")]
 public class AuthorsController : ControllerBase
 {
@@ -19,20 +20,78 @@ public class AuthorsController : ControllerBase
         IMapper mapper)
     {
         _courseLibraryRepository = courseLibraryRepository ??
-            throw new ArgumentNullException(nameof(courseLibraryRepository));
+                                   throw new ArgumentNullException(nameof(courseLibraryRepository));
         _mapper = mapper ??
-            throw new ArgumentNullException(nameof(mapper));
+                  throw new ArgumentNullException(nameof(mapper));
     }
 
-    [HttpGet] 
+    [HttpGet(Name = "GetAuthors")]
     public async Task<ActionResult<IEnumerable<AuthorDto>>> GetAuthors(
         [FromQuery] AuthorsResourceParameters authorsResourceParameters)
-    { 
+    {
         var authorsFromRepo = await _courseLibraryRepository
-            .GetAuthorsAsync(authorsResourceParameters); 
+            .GetAuthorsAsync(authorsResourceParameters);
+
+        var previousPageLink = authorsFromRepo.HasPrevious
+            ? CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.PreviousPage)
+            : null;
+        
+        var nextPageLink = authorsFromRepo.HasNext
+            ? CreateAuthorsResourceUri(authorsResourceParameters, ResourceUriType.NextPage)
+            : null;
+
+        var paginationMetadata = new
+        {
+            totalCount = authorsFromRepo.TotalCount,
+            pageSize = authorsFromRepo.PageSize,
+            currentPage = authorsFromRepo.CurrentPage,
+            totalPages = authorsFromRepo.TotalPages,
+            previousPageLink = previousPageLink,
+            nextPageLink = nextPageLink
+
+        };
+        
+        Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMetadata));
+        
         return Ok(_mapper.Map<IEnumerable<AuthorDto>>(authorsFromRepo));
     }
 
+    private string? CreateAuthorsResourceUri(
+        AuthorsResourceParameters authorsResourceParameters,
+        ResourceUriType type)
+    {
+        switch (type)
+        {
+            case ResourceUriType.PreviousPage:
+                return Url.Link("GetAuthors",
+                    new
+                    {
+                        pageNumber = authorsResourceParameters.PageNumber - 1,
+                        pageSize = authorsResourceParameters.PageSize,
+                        mainCategory = authorsResourceParameters.MainCategory,
+                        searchQuery = authorsResourceParameters.SearchQuery
+                    });
+            case ResourceUriType.NextPage:
+                return Url.Link("GetAuthors",
+                    new
+                    {
+                        pageNumber = authorsResourceParameters.PageNumber + 1,
+                        pageSize = authorsResourceParameters.PageSize,
+                        mainCategory = authorsResourceParameters.MainCategory,
+                        searchQuery = authorsResourceParameters.SearchQuery
+                    });
+            default:
+                return Url.Link("GetAuthors",
+                    new
+                    {
+                        pageNumber = authorsResourceParameters.PageNumber,
+                        pageSize = authorsResourceParameters.PageSize,
+                        mainCategory = authorsResourceParameters.MainCategory,
+                        searchQuery = authorsResourceParameters.SearchQuery
+                    });
+        }
+    }
+    
     [HttpGet("{authorId}", Name = "GetAuthor")]
     public async Task<ActionResult<AuthorDto>> GetAuthor(Guid authorId)
     {
@@ -41,6 +100,7 @@ public class AuthorsController : ControllerBase
         {
             return NotFound();
         }
+
         return Ok(_mapper.Map<AuthorDto>(authorFromRepo));
     }
 
@@ -58,7 +118,7 @@ public class AuthorsController : ControllerBase
             new { authorId = authorToReturn.Id },
             authorToReturn);
     }
-    
+
     [HttpOptions]
     public IActionResult GetAuthorsOptions()
     {
